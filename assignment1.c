@@ -34,16 +34,33 @@ void to_lower(char* s) {
     }
 }
 
+int case_insensitive_cmp(const char* a, const char* b) {
+    char aa[MAX_NAME_LEN], bb[MAX_NAME_LEN];
+    strncpy(aa, a, MAX_NAME_LEN);
+    strncpy(bb, b, MAX_NAME_LEN);
+    to_lower(aa);
+    to_lower(bb);
+    return strcmp(aa, bb);
+}
+
 void load_data(const char* filename) {
     FILE* file = fopen(filename, "r");
-    if (!file) return;
+    if (!file) {
+        printf("Error opening file %s\n", filename);
+        return;
+    }
     char line[256];
     while (fgets(line, sizeof(line), file)) {
         if (boat_count >= MAX_BOATS) break;
         Boat* b = malloc(sizeof(Boat));
+        if (!b) {
+            printf("Memory allocation failed.\n");
+            fclose(file);
+            return;
+        }
         sscanf(line, "%127[^,],%d,%15[^,],%15[^,],%f",
                b->name, &b->length, b->type, b->info, &b->owed);
-        to_lower(b->type); // Convert type to lowercase
+        to_lower(b->type);
         boats[boat_count++] = b;
     }
     fclose(file);
@@ -51,6 +68,10 @@ void load_data(const char* filename) {
 
 void save_data(const char* filename) {
     FILE* file = fopen(filename, "w");
+    if (!file) {
+        printf("Error saving to file %s\n", filename);
+        return;
+    }
     for (int i = 0; i < boat_count; i++) {
         fprintf(file, "%s,%d,%s,%s,%.2f\n",
                 boats[i]->name, boats[i]->length, boats[i]->type,
@@ -80,13 +101,17 @@ void add_boat() {
     printf("Please enter the boat data in CSV format                 : ");
     fgets(input, sizeof(input), stdin);
     Boat* b = malloc(sizeof(Boat));
+    if (!b) {
+        printf("Memory allocation failed.\n");
+        return;
+    }
     if (sscanf(input, "%127[^,],%d,%15[^,],%15[^,],%f",
                b->name, &b->length, b->type, b->info, &b->owed) != 5) {
         printf("Invalid boat data format.\n");
         free(b);
         return;
     }
-    to_lower(b->type); // Convert type to lowercase
+    to_lower(b->type);
     boats[boat_count++] = b;
 }
 
@@ -96,7 +121,7 @@ void remove_boat() {
     fgets(name, sizeof(name), stdin);
     name[strcspn(name, "\n")] = 0;
     for (int i = 0; i < boat_count; i++) {
-        if (strcmp(boats[i]->name, name) == 0) {
+        if (case_insensitive_cmp(boats[i]->name, name) == 0) {
             free(boats[i]);
             for (int j = i; j < boat_count - 1; j++) boats[j] = boats[j + 1];
             boat_count--;
@@ -120,7 +145,7 @@ void accept_payment() {
     }
     while (getchar() != '\n');
     for (int i = 0; i < boat_count; i++) {
-        if (strcmp(boats[i]->name, name) == 0) {
+        if (case_insensitive_cmp(boats[i]->name, name) == 0) {
             if (amount > boats[i]->owed) {
                 printf("Payment too large.\n");
                 return;
@@ -144,7 +169,10 @@ int main(int argc, char* argv[]) {
         printf("Usage: %s BoatData.csv\n", argv[0]);
         return 1;
     }
+
+    printf("Welcome to the Fleet Management System!\n");
     load_data(argv[1]);
+    
     char choice;
     int running = 1;
     while (running) {
@@ -161,7 +189,9 @@ int main(int argc, char* argv[]) {
             default: printf("Invalid option.\n"); break;
         }
     }
+    printf("Exiting Fleet Management. Goodbye!\n");
     save_data(argv[1]);
     for (int i = 0; i < boat_count; i++) free(boats[i]);
     return 0;
 }
+s
