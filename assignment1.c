@@ -194,4 +194,3 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i < boat_count; i++) free(boats[i]);
     return 0;
 }
-s
